@@ -14,6 +14,8 @@ env:
 jobs:
     deploy-infra:
         runs-on: ubuntu-latest
+        outputs:
+            instance_ip: ${{ steps.instance_ip.outputs.ip }}
         steps:
             - name: Checkout code
               uses: actions/checkout@v2
@@ -41,3 +43,57 @@ jobs:
             - name: Apply Terraform configuration
               run: terraform apply PLAN
               working-directory: ./Terraform
+
+            - name: Instance Public IP
+              id: instance_ip
+              run: |-
+                echo "::set-output name=ip::$(terraform output instance_public_ip)"
+              working-directory: ./Terraform
+
+    deploy-app:
+        runs-on: ubuntu-latest
+        needs: deploy-infra
+        steps: 
+            - name: Checkout
+              uses: actions/checkout@v2
+
+            - name: Set IP env Variable
+              run: echo "INSTANCE_IP=${{ needs.deploy-infra.outputs.instance_ip }}" >> $GITHUB_ENV
+
+            - name: Login to AWS ECR
+              id: ecr-login
+              uses: aws-actions/amazon-ecr-login@v1
+            
+            - name: Build And Push Docker Image
+              env:
+                REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+                REPOSITORY: Sample-DevOps-project
+                IMAGE_TAG: ${{ github.sha }}
+                AWS_DEFAULT_REGION: us-east-1
+              run: |-
+                docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
+                docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
+
+            - name: Deploy Docker Image to EC2 Instance
+              env: 
+                REGISTRY: ${{ steps.ecr-login.outputs.registry }}
+                REPOSITORY: Sample-DevOps-project
+                IMAGE_TAG: ${{ github.sha }}
+                AWS_DEFAULT_REGION: us-east-1
+              uses: appleboy/scp-action@master
+              with:
+                host: ${{ env.INSTANCE_IP }}
+                username: ubuntu
+                key: ${{ secrets.AWS_SSH_KEY_PRIVATE }}
+                envs: AWS_SSH_KEY_PRIVATE, REGISTRY, REPOSITORY, IMAGE_TAG, AWS_DEFAULT_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_SSH_KEY_PUBLIC, AWS_TF_STATE_BUCKET_NAME
+                script: |-
+                    sudo apt update -y
+                    sudo apt install docker.io -y
+                    sudo apt install awscli -y
+                    sudo $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
+                    sudo docker stop myapp || true
+                    sudo docker rm myapp || true
+                    sudo docker pull $REGISTRY/$REPOSITORY:$IMAGE_TAG
+                    sudo docker run -d --name myapp -p 80:80 $REGISTRY/$REPOSITORY:$IMAGE_TAG
+                    sudo docker ps -a
+
