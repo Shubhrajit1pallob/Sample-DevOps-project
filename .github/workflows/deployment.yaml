@@ -67,17 +67,17 @@ jobs:
             - name: Build And Push Docker Image
               env:
                 REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-                REPOSITORY: Sample-DevOps-project
+                REPOSITORY: sample-DevOps-project
                 IMAGE_TAG: ${{ github.sha }}
                 AWS_DEFAULT_REGION: us-east-1
               run: |-
                 docker build -t $REGISTRY/$REPOSITORY:$IMAGE_TAG .
                 docker push $REGISTRY/$REPOSITORY:$IMAGE_TAG
-
+              working-directory: ./nodeapp
             - name: Deploy Docker Image to EC2 Instance
               env: 
                 REGISTRY: ${{ steps.ecr-login.outputs.registry }}
-                REPOSITORY: Sample-DevOps-project
+                REPOSITORY: sample-DevOps-project
                 IMAGE_TAG: ${{ github.sha }}
                 AWS_DEFAULT_REGION: us-east-1
               uses: appleboy/scp-action@master
