@@ -88,12 +88,12 @@ jobs:
                 REPOSITORY: sample-devops-project
                 IMAGE_TAG: ${{ github.sha }}
                 AWS_DEFAULT_REGION: us-east-1
-              uses: appleboy/scp-action@master
+              uses: appleboy/ssh-action@master
               with:
                 host: ${{ env.INSTANCE_IP }}
                 username: ubuntu
                 key: ${{ secrets.AWS_SSH_KEY_PRIVATE }}
-                envs: AWS_SSH_KEY_PRIVATE, REGISTRY, REPOSITORY, IMAGE_TAG, AWS_DEFAULT_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, AWS_SSH_KEY_PUBLIC, AWS_TF_STATE_BUCKET_NAME
+                envs: AWS_SSH_KEY_PRIVATE,REGISTRY,REPOSITORY,IMAGE_TAG,AWS_DEFAULT_REGION,AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_REGION,AWS_SSH_KEY_PUBLIC,AWS_TF_STATE_BUCKET_NAME
                 script: |-
                     sudo apt update -y
                     sudo apt install docker.io -y
