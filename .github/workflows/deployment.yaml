@@ -63,6 +63,14 @@ jobs:
             - name: Login to AWS ECR
               id: ecr-login
               uses: aws-actions/amazon-ecr-login@v1
+
+            - name: Create ECR repository if not exists
+              env:
+                AWS_DEFAULT_REGION: us-east-1
+                REPOSITORY: sample-devops-project
+              run: |
+                aws ecr describe-repositories --repository-names "$REPOSITORY" --region "$AWS_DEFAULT_REGION" || \
+                aws ecr create-repository --repository-name "$REPOSITORY" --region "$AWS_DEFAULT_REGION"
             
             - name: Build And Push Docker Image
               env:
