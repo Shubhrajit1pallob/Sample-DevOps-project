@@ -8,7 +8,7 @@ This project demonstrates how to automate the deployment of a Node.js applicatio
 
 ## Workflow Diagram
 
-```
+```text
 GitHub → GitHub Actions → Terraform → Amazon EC2 → Docker → Amazon ECR → Amazon EC2
 ```
 
